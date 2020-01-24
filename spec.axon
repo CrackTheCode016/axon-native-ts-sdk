@@ -1,0 +1,75 @@
+INIT: 
+        The init of Axon deals with the intial start of the device.  
+        Once the device is started, it must undergo through several checks:
+        * Check if Axon's assigned ID exists.  
+        * Check if Axon's assigned ID has data associated with it (with the given node).
+            * If there is data associated with it, start listening and writing to the blockchain.
+            * If there is not data associated with it, allow the first account to claim ownership
+              to be labeled as the first owner. 
+
+
+OWNERSHIP:
+            Ownership is comprised of: 
+            * who owns it, 
+            * the proof of that ownership, 
+            * and the level of the ownership
+
+            Ownership Levels go as follows.  They indicate permissions, as set by the original owner.  
+            The levels indicate the right to read, write, or change settings on Axon.
+
+            READ_LEVEL=100
+            WRITE_LEVEL=200
+            ROOT_LEVEL=300
+
+            These values are added to represent the level of ownership on-chain.  An example of a complete owner would be:
+            OWNERSHIP_LEVEL=600
+
+            This inidcates that they can read, write, and also have root level of the device. 
+            Root level allows the owner to update and change core Axon settings.
+
+
+            Ownership Status represents the status of the owner.  
+            The first claiment of Axon will be labled as CLAIMANT=0.
+            Other owners are assigned by CLAIMANT=0, and can the labels CLAIMANT=1, 2, etc.
+
+            Ownership is recored On-chain as metadata associated with Axon's Identity.  
+            The first owner of a device is signified as such.  There can only be ONE owner that has this label.
+            Axon knows to check if it has an owner or not, and goes through the correct process each time
+            to ensure if it has assigned or not.
+
+COMMANDS:
+        Commands deal with INCOMING data.  Devices REACT on commands.  Devices can also send COMMANDS.
+    METHODS:
+        CHECK_COMMAND:
+                    PARAMS: command, sender_address
+                    DESC: Check if device is a device via metadata.  
+                          Metadata signifies ability to accept commands or records.
+        EXECUTE_COMMAND:
+                PARAMS: output_sensor, command_type
+                DESC: Execute command. Should comes after CHECK_COMMAND.  
+                      Calls output_sensor, aka, the function name.
+        WATCH_FOR_COMMAND:
+                PARAMS: device_address
+                DESC: Watch for transactions incoming to device. Parse and see if it's a command.
+
+RECORDS:
+        Records are OUTGOING data.  Devices SEND Records to the blockchain.  A record contains a CONCLUSION 
+        on recent data sent out from the device.  Records are sent to
+
+    STRUCTS:
+        Record:
+                recipient: Address,
+                data: string,
+                recordType: RecordType,
+                recordInformation: RecordInformation:
+                                STRUCT:
+                                        timestamp: string,
+                                        signer: string,
+                                        deviceId: string,
+                                        sensor: string
+            METHODS:
+                SEND_RECORD:
+                    PARAMS: recording_address
+                    DESC: Send a record.
+                
+                
