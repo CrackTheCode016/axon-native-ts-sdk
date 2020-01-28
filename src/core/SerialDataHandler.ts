@@ -52,7 +52,12 @@ export class SerialDataHandler {
         return interval(frequency).pipe(
             map(() => {
                 const serialData = this.bindings.readSerialPort();
-                if (this.isJSON(serialData)) {
+
+                if (serialData == "I1") {
+                    this.bindings.watchState();
+                }
+
+                else if (this.isJSON(serialData)) {
                     const data: RecordSerialized = JSON.parse(serialData);
                     return SerialDataHandler.parse(data);
                 }

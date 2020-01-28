@@ -23,34 +23,28 @@ var ownerAccount: Account;
 var recordHttp: RecordHttp;
 
 const recordListener = handler.recordListener(2000);
-const watchRecord = handler.stateListener(2000)
-    .pipe(
-        map((state) => {
-            storedState = state;
-            recordHttp = new RecordHttp(state.node_ip);
-            console.log("Checking for state")
-            return state;
-        }),
-        mergeMap(() => recordListener),
-        map((record) => {
-            if (record instanceof Record) {
-                console.log(record.toTransaction() as TransferTransaction);
-                const signedTx = axonAccount.sign(
-                    record.toTransaction() as TransferTransaction,
-                    storedState.gen_hash);
-                console.log(signedTx.hash)
-                return signedTx;
-            }
-            return record as string;
-        }),
-        map((tx) => {
-            if (tx instanceof SignedTransaction) {
-                return recordHttp.send(tx);
-            }
-            return tx as string;
-        }),
-        mergeMap((response) => response)
-    );
+const watchRecord = handler.recordListener(2000).pipe(
+    map((record) => {
+        if (record instanceof Record) {
+            console.log(record.toTransaction() as TransferTransaction);
+            const signedTx = axonAccount.sign(
+                record.toTransaction() as TransferTransaction,
+                storedState.gen_hash);
+            console.log(signedTx.hash)
+            return signedTx;
+        }
+        return record as string;
+    }),
+    map((tx) => {
+        const state = binding.loadState();
+        recordHttp = new RecordHttp(state.node_ip);
+        if (tx instanceof SignedTransaction) {
+            return recordHttp.send(tx);
+        }
+        return tx as string;
+    }),
+    mergeMap((response) => response)
+);
 
 
 const watchCommand = handler.stateListener(2000)
