@@ -61,7 +61,8 @@ export class SerialDataHandler {
                     const data: RecordSerialized = JSON.parse(serialData);
                     return SerialDataHandler.parse(data);
                 }
-                return serialData;
+                const filtered = serialData.replace('\n', "");
+                return filtered;
             }),
             retryWhen(errors =>
                 errors.pipe(
