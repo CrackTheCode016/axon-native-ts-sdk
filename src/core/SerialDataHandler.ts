@@ -61,7 +61,7 @@ export class SerialDataHandler {
                     const data: RecordSerialized = JSON.parse(serialData);
                     return SerialDataHandler.parse(data);
                 }
-                return serialData;
+                return serialData.trim();
             }),
             retryWhen(errors =>
                 errors.pipe(
