@@ -33,7 +33,7 @@ const watchRecord = handler.recordListener(2000).pipe(
             console.log(signedTx.hash)
             return signedTx;
         }
-        return record as string;
+        return record;
     }),
     map((tx) => {
         const state = binding.loadState();
@@ -41,7 +41,7 @@ const watchRecord = handler.recordListener(2000).pipe(
         if (tx instanceof SignedTransaction) {
             return recordHttp.send(tx);
         }
-        return tx as string;
+        return tx;
     }),
     mergeMap((response) => response)
 );
