@@ -29,6 +29,15 @@ export class SerialDataHandler {
         return new Record(recipient, serializedRecord.data, serializedRecord.recordType, recordInformation);
     }
 
+    private isJSON(str: string): boolean {
+        try {
+            JSON.parse(str);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
 
     public stateListener(frequency: number): Observable<State> {
         return of(frequency).pipe(
@@ -39,13 +48,15 @@ export class SerialDataHandler {
             ));
     }
 
-    public recordListener(frequency: number): Observable<Record> {
+    public recordListener(frequency: number): Observable<Record | string> {
         return interval(frequency).pipe(
             map(() => {
                 const serialData = this.bindings.readSerialPort();
-                console.log(serialData)
-                const data: RecordSerialized = JSON.parse(serialData);
-                return SerialDataHandler.parse(data);
+                if (this.isJSON(serialData)) {
+                    const data: RecordSerialized = JSON.parse(serialData);
+                    return SerialDataHandler.parse(data);
+                }
+                return serialData;
             }),
             retryWhen(errors =>
                 errors.pipe(

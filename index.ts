@@ -1,6 +1,6 @@
 import { SerialDataHandler, AxonBindings } from "./src/core/core";
 import { Command, Record, State, Identity } from "./src/model/model";
-import { PublicAccount, Account, NetworkType, TransferTransaction } from "nem2-sdk";
+import { PublicAccount, Account, NetworkType, TransferTransaction, SignedTransaction } from "nem2-sdk";
 import { mergeMap, map, concatMap, mergeAll } from "rxjs/operators";
 import { RecordHttp } from "./src/infrastructure/RecordHttp";
 import { Observable, merge } from "rxjs";
@@ -33,14 +33,22 @@ const watchRecord = handler.stateListener(2000)
         }),
         mergeMap(() => recordListener),
         map((record) => {
-            console.log(record.toTransaction() as TransferTransaction);
-            const signedTx = axonAccount.sign(
-                record.toTransaction() as TransferTransaction,
-                storedState.gen_hash);
-            console.log(signedTx.hash)
-            return signedTx;
+            if (record instanceof Record) {
+                console.log(record.toTransaction() as TransferTransaction);
+                const signedTx = axonAccount.sign(
+                    record.toTransaction() as TransferTransaction,
+                    storedState.gen_hash);
+                console.log(signedTx.hash)
+                return signedTx;
+            }
+            return record as string;
         }),
-        map((tx) => recordHttp.send(tx)),
+        map((tx) => {
+            if (tx instanceof SignedTransaction) {
+                return recordHttp.send(tx);
+            }
+            return tx as string;
+        }),
         mergeMap((response) => response)
     );
 
