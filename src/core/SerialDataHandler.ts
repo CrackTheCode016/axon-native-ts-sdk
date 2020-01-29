@@ -51,8 +51,8 @@ export class SerialDataHandler {
     public recordListener(frequency: number): Observable<Record | string> {
         return interval(frequency).pipe(
             map(() => {
-                const serialData = this.bindings.readSerialPort();
-
+                const serialData = this.bindings.readSerialPort().trim();
+                console.log(serialData);
                 if (serialData == "I1") {
                     this.bindings.watchState();
                 }
@@ -61,7 +61,7 @@ export class SerialDataHandler {
                     const data: RecordSerialized = JSON.parse(serialData);
                     return SerialDataHandler.parse(data);
                 }
-                const filtered = serialData.replace('\n', "");
+                const filtered = serialData.replace('\r', "");
                 return filtered;
             }),
             retryWhen(errors =>
