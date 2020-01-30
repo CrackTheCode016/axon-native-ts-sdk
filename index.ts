@@ -3,8 +3,8 @@ import { Command, Record, State, Identity } from "./src/model/model";
 import { PublicAccount, Account, NetworkType, TransferTransaction, SignedTransaction } from "nem2-sdk";
 import { mergeMap, map, concatMap, mergeAll } from "rxjs/operators";
 import { RecordHttp } from "./src/infrastructure/RecordHttp";
-import { Observable, merge } from "rxjs";
 import { CommandHttp } from "./src/infrastructure/CommandHttp";
+import { stat } from "fs";
 
 export * from "./src/model/model";
 export * from "./src/infrastructure/infrastructure";
@@ -22,9 +22,9 @@ console.log(axonAccount.address.plain())
 var ownerAccount: Account;
 var recordHttp: RecordHttp;
 
-const recordListener = handler.recordListener(2000);
 const watchRecord = handler.recordListener(2000).pipe(
     map((record) => {
+        ownerAccount = Account.createFromPrivateKey(storedState.user_private_key, NetworkType.TEST_NET);
         if (record instanceof Record) {
             console.log(record.toTransaction() as TransferTransaction);
             const signedTx = axonAccount.sign(
@@ -46,13 +46,12 @@ const watchRecord = handler.recordListener(2000).pipe(
     mergeMap((response) => response)
 );
 
-
 const watchCommand = handler.stateListener(2000)
     .pipe(
         map((state) => {
+            commandHttp = new CommandHttp(storedState.node_ip, ownerAccount, binding)
             console.log(storedState.node_ip);
             ownerAccount = Account.createFromPrivateKey(storedState.user_private_key, NetworkType.TEST_NET);
-            commandHttp = new CommandHttp(storedState.node_ip, ownerAccount, binding);
             console.log("Command state fetched");
             return state;
         }),

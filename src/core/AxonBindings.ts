@@ -44,7 +44,6 @@ export class AxonBindings {
     }
 
     public loadState(): State {
-        console.log(this.statePath);
         const state = axonNative.loadState(this.statePath);
         return JSON.parse(state);
     }
