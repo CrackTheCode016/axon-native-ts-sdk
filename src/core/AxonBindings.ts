@@ -2,6 +2,7 @@ import { Command } from "../model/interfaces/Command";
 import { CommandResponse } from "../model/interfaces/CommandResponse";
 import { Identity } from "../model/interfaces/Identity";
 import { State } from "../model/interfaces/State";
+import { Record } from "../model/model";
 
 var axonNative = require('../../../native');
 
@@ -24,10 +25,14 @@ export class AxonBindings {
         return axonNative.writeSerial(this.serialPortPath, data);
     }
 
+    public watchRecord(): Record {
+        const r = axonNative.watchRecord(this.serialPortPath);
+        console.log("HERE!!" + r)
+        return JSON.parse(r);
+    }
+
     public processCommand(command: Command) {
-        const data = axonNative.sendCommand(this.serialPortPath, command.command, command.pin, command.operation);
-        // const response: CommandResponse = {};
-        // return response;
+        axonNative.sendCommand(this.serialPortPath, command.command, command.pin, command.operation, command.currency.amount);
     }
 
     public getIdentity(): Identity {
@@ -36,7 +41,7 @@ export class AxonBindings {
     }
 
     public saveState(state: State) {
-        axonNative.saveState(this.statePath, state.user_private_key, state.node_ip, state.gen_hash);
+        axonNative.saveState(this.statePath, state.ownerPublicKey, state.nodeIp, state.genHash);
     }
 
     public watchState(): boolean {

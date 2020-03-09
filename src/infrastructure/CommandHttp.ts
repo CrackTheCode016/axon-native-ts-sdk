@@ -1,7 +1,7 @@
 import { Command, Identity } from "../model/model";
-import { Listener, Address, Transaction, TransferTransaction, TransactionType, Account, NetworkType } from "nem2-sdk";
-import { Observable, from, merge } from "rxjs";
-import { mergeMap, map, filter, concatAll, withLatestFrom } from "rxjs/operators";
+import { Listener, Address, Transaction, TransferTransaction, TransactionType, Account, NetworkType, PublicAccount } from "nem2-sdk";
+import { Observable, from, merge, throwError } from "rxjs";
+import { mergeMap, map, filter, concatAll, withLatestFrom, catchError, tap } from "rxjs/operators";
 import { OwnershipHttp } from "./OwnershipHttp";
 import { Owner } from "../model/interfaces/Owner";
 import { BadCommand } from "../model/interfaces/BadCommand";
@@ -10,12 +10,12 @@ import { AxonBindings } from "../core/core";
 export class CommandHttp {
 
     private listener: Listener;
-    private account: Account;
+    private account: PublicAccount;
     private identity: Account;
     private ownerHttp: OwnershipHttp;
 
 
-    constructor(node: string, ownerAccount: Account, bindings: AxonBindings) {
+    constructor(node: string, ownerAccount: PublicAccount, bindings: AxonBindings) {
         console.log(node);
         this.listener = new Listener(node);
         this.identity = Account.createFromPrivateKey(bindings.getIdentity().key, NetworkType.TEST_NET);
@@ -26,6 +26,7 @@ export class CommandHttp {
     }
 
     private isTransfer(tx: Transaction): boolean { return tx.type === TransactionType.TRANSFER }
+
     public watch(): Observable<Command> {
         return from(this.listener.open()).pipe(
             mergeMap(() => this.listener.confirmed(this.account.address)),
@@ -37,7 +38,8 @@ export class CommandHttp {
                 } else {
                     return command as BadCommand;
                 }
-            })
+            }),
+            catchError((err) => throwError(err))
         )
     }
 
