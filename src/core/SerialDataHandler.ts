@@ -37,38 +37,4 @@ export class SerialDataHandler {
             return false;
         }
     }
-
-
-    public stateListener(frequency: number): Observable<State> {
-        return of(frequency).pipe(
-            map(() => {
-                this.bindings.watchState();
-                return this.bindings.loadState();
-            }
-            ));
-    }
-
-    public recordListener(frequency: number): Observable<Record | string> {
-        return interval(frequency).pipe(
-            map(() => {
-                const serialData = this.bindings.readSerialPort().trim();
-                console.log(serialData);
-                if (serialData == "I1") {
-                    this.bindings.watchState();
-                }
-
-                else if (this.isJSON(serialData)) {
-                    const data: RecordSerialized = JSON.parse(serialData);
-                    return SerialDataHandler.parse(data);
-                }
-                const filtered = serialData.replace('\r', "");
-                return filtered;
-            }),
-            retryWhen(errors =>
-                errors.pipe(
-                    tap(val => console.log("Error occured: ", val))
-                )
-            )
-        );
-    }
 }

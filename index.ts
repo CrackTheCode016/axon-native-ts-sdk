@@ -1,75 +1,66 @@
-import { SerialDataHandler, AxonBindings } from "./src/core/core";
+import { SerialDataHandler, AxonBindings, RecordListener, StateListener } from "./src/core/core";
 import { Command, Record, State, Identity } from "./src/model/model";
 import { PublicAccount, Account, NetworkType, TransferTransaction, SignedTransaction } from "nem2-sdk";
 import { mergeMap, map, concatMap, mergeAll } from "rxjs/operators";
 import { RecordHttp } from "./src/infrastructure/RecordHttp";
 import { CommandHttp } from "./src/infrastructure/CommandHttp";
-import { stat } from "fs";
+import { interval, merge, concat, of } from "rxjs";
 
 export * from "./src/model/model";
 export * from "./src/infrastructure/infrastructure";
 export * from "./src/core/core";
 
 
-const handler = new SerialDataHandler("/dev/cu.usbmodem62206501");
-const binding = new AxonBindings("/dev/cu.usbmodem62206501");
+const binding = new AxonBindings("/dev/cu.usbmodem64742701");
+const recordListener = new RecordListener(binding);
+const stateListener = new StateListener(binding);
+
 var recordHttp: RecordHttp;
 var commandHttp: CommandHttp;
 var storedState: State = binding.loadState();
 var identity: Identity = binding.getIdentity();
 var axonAccount = Account.createFromPrivateKey(identity.key, NetworkType.TEST_NET);
 console.log(axonAccount.address.plain())
-var ownerAccount: Account;
+var ownerAccount: PublicAccount;
 var recordHttp: RecordHttp;
 
-const watchRecord = handler.recordListener(2000).pipe(
-    map((record) => {
-        ownerAccount = Account.createFromPrivateKey(storedState.user_private_key, NetworkType.TEST_NET);
-        if (record instanceof Record) {
-            console.log(record.toTransaction() as TransferTransaction);
-            const signedTx = axonAccount.sign(
-                record.toTransaction() as TransferTransaction,
-                storedState.gen_hash);
-            console.log(signedTx.hash)
-            return signedTx;
-        }
-        return record;
+const watchRecordState = concat(
+    stateListener.listen(),
+    recordListener.listen()
+        .pipe(
+            map((record) => {
+                ownerAccount = PublicAccount.createFromPublicKey(storedState.ownerPublicKey, NetworkType.TEST_NET);
+                console.log(record.toTransaction() as TransferTransaction);
+                const signedTx = axonAccount.sign(
+                    record.toTransaction() as TransferTransaction,
+                    storedState.genHash);
+                console.log(signedTx.hash)
+                return signedTx;
+            }),
+            map((tx) => {
+                const state = binding.loadState();
+                recordHttp = new RecordHttp(state.nodeIp);
+                return recordHttp.send(tx);
+            }),
+            mergeMap((response) => response)
+        ),
+)
+
+const watchAll = interval(1000).pipe(
+    map((_) => {
+        console.log("Waiting...")
+        return watchRecordState
     }),
-    map((tx) => {
-        const state = binding.loadState();
-        recordHttp = new RecordHttp(state.node_ip);
-        if (tx instanceof SignedTransaction) {
-            return recordHttp.send(tx);
-        }
-        return tx;
-    }),
-    mergeMap((response) => response)
-);
+    mergeAll()
+)
 
-const watchCommand = handler.stateListener(2000)
-    .pipe(
-        map((state) => {
-            commandHttp = new CommandHttp(storedState.node_ip, ownerAccount, binding)
-            console.log(storedState.node_ip);
-            ownerAccount = Account.createFromPrivateKey(storedState.user_private_key, NetworkType.TEST_NET);
-            console.log("Command state fetched");
-            return state;
-        }),
-        mergeMap(() => commandHttp.watch()),
-        map((command) => {
-            console.log("Command listening");
-            if (command != undefined) {
-                binding.processCommand(command);
-                return "Command Processed: " + JSON.stringify(command);
-            }
-            return "Bad Command: " + JSON.stringify(command);
-        })
-    )
+commandHttp = new CommandHttp(binding.loadState(), binding)
 
-watchRecord.subscribe((response) => {
-    console.log(response);
-});
+commandHttp.watch().subscribe((c) => {
+    console.log('Command listener opened')
+    if (c) {
+        binding.processCommand(c)
+    }
+}, (e) => console.log(e))
 
-watchCommand.subscribe((response) => {
-    console.log(response)
-});
+watchAll.subscribe((c) => console.log(c))
