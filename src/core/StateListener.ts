@@ -6,8 +6,8 @@ import { State } from "../model/model";
 export class StateListener {
     constructor(readonly bindings: AxonBindings) { }
 
-    public listen(): Observable<State> {
-        return of(10).pipe(
+    public listen(freq: number): Observable<State> {
+        return interval(freq).pipe(
             map(() => {
                 try { this.bindings.watchState() }
                 catch (e) { console.log("caught! " + e) }

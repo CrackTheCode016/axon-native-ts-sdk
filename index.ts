@@ -24,9 +24,9 @@ console.log(axonAccount.address.plain())
 var ownerAccount: PublicAccount;
 var recordHttp: RecordHttp;
 
-const watchRecordState = concat(
-    stateListener.listen(),
-    recordListener.listen()
+const watchRecordState = merge(
+    stateListener.listen(1000),
+    recordListener.listen(1000)
         .pipe(
             map((record) => {
                 ownerAccount = PublicAccount.createFromPublicKey(storedState.ownerPublicKey, NetworkType.TEST_NET);
@@ -46,13 +46,7 @@ const watchRecordState = concat(
         ),
 )
 
-const watchAll = interval(1000).pipe(
-    map((_) => {
-        console.log("Waiting...")
-        return watchRecordState
-    }),
-    mergeAll()
-)
+watchRecordState.subscribe((r) => console.log(r))
 
 commandHttp = new CommandHttp(binding.loadState(), binding)
 
@@ -61,6 +55,4 @@ commandHttp.watch().subscribe((c) => {
     if (c) {
         binding.processCommand(c)
     }
-}, (e) => console.log(e))
-
-watchAll.subscribe((c) => console.log(c))
+})

@@ -9,11 +9,13 @@ export class RecordListener {
 
     constructor(readonly bindings: AxonBindings) { }
 
-    public listen(): Observable<Record> {
-        return of(10).pipe(
+    public listen(freq: number): Observable<Record> {
+        return interval(freq).pipe(
             map(() => {
                 console.log('Trying record')
-                const serializedRecord = this.bindings.watchRecord()
+                let serializedRecord: any
+                try { serializedRecord = this.bindings.watchRecord() }
+                catch (e) { console.log("caught! " + e) }
                 const timestamp = Date.now().toString();
                 const recordInformation: RecordInformation = {
                     node: serializedRecord.node,
