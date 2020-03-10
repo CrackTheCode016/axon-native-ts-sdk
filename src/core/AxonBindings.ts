@@ -2,7 +2,7 @@ import { Command } from "../model/interfaces/Command";
 import { CommandResponse } from "../model/interfaces/CommandResponse";
 import { Identity } from "../model/interfaces/Identity";
 import { State } from "../model/interfaces/State";
-import { Record } from "../model/model";
+import { Record, RecordSerialized } from "../model/model";
 
 var axonNative = require('../../../native');
 
@@ -25,9 +25,8 @@ export class AxonBindings {
         return axonNative.writeSerial(this.serialPortPath, data);
     }
 
-    public watchRecord(): Record {
+    public watchRecord(): RecordSerialized {
         const r = axonNative.watchRecord(this.serialPortPath);
-        console.log("HERE!!" + r)
         return JSON.parse(r);
     }
 

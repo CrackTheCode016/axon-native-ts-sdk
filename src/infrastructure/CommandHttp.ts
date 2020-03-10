@@ -1,4 +1,4 @@
-import { Command, Identity } from "../model/model";
+import { Command, Identity, State } from "../model/model";
 import { Listener, Address, Transaction, TransferTransaction, TransactionType, Account, NetworkType, PublicAccount } from "nem2-sdk";
 import { Observable, from, merge, throwError } from "rxjs";
 import { mergeMap, map, filter, concatAll, withLatestFrom, catchError, tap } from "rxjs/operators";
@@ -15,13 +15,13 @@ export class CommandHttp {
     private ownerHttp: OwnershipHttp;
 
 
-    constructor(node: string, ownerAccount: PublicAccount, bindings: AxonBindings) {
-        console.log(node);
-        this.listener = new Listener(node);
+    constructor(state: State, bindings: AxonBindings) {
+        console.log('OPENED LISTENER!')
+        this.listener = new Listener(state.nodeIp);
         this.identity = Account.createFromPrivateKey(bindings.getIdentity().key, NetworkType.TEST_NET);
-        this.account = ownerAccount;
+        this.account = PublicAccount.createFromPublicKey(state.ownerPublicKey, NetworkType.TEST_NET);
         console.log(this.account.address.plain())
-        this.ownerHttp = new OwnershipHttp(node, bindings);
+        this.ownerHttp = new OwnershipHttp(state.nodeIp, bindings);
 
     }
 

@@ -4,7 +4,7 @@ import { PublicAccount, Account, NetworkType, TransferTransaction, SignedTransac
 import { mergeMap, map, concatMap, mergeAll } from "rxjs/operators";
 import { RecordHttp } from "./src/infrastructure/RecordHttp";
 import { CommandHttp } from "./src/infrastructure/CommandHttp";
-import { interval } from "rxjs";
+import { interval, merge, concat, of } from "rxjs";
 
 export * from "./src/model/model";
 export * from "./src/infrastructure/infrastructure";
@@ -24,72 +24,43 @@ console.log(axonAccount.address.plain())
 var ownerAccount: PublicAccount;
 var recordHttp: RecordHttp;
 
-const watchRecord = recordListener.listen(2000).pipe(
-    map((record) => {
-        ownerAccount = PublicAccount.createFromPublicKey(storedState.ownerPublicKey, NetworkType.TEST_NET);
-        console.log(record.toTransaction() as TransferTransaction);
-        const signedTx = axonAccount.sign(
-            record.toTransaction() as TransferTransaction,
-            storedState.genHash);
-        console.log(signedTx.hash)
-        return signedTx;
+const watchRecordState = concat(
+    stateListener.listen(),
+    recordListener.listen()
+        .pipe(
+            map((record) => {
+                ownerAccount = PublicAccount.createFromPublicKey(storedState.ownerPublicKey, NetworkType.TEST_NET);
+                console.log(record.toTransaction() as TransferTransaction);
+                const signedTx = axonAccount.sign(
+                    record.toTransaction() as TransferTransaction,
+                    storedState.genHash);
+                console.log(signedTx.hash)
+                return signedTx;
+            }),
+            map((tx) => {
+                const state = binding.loadState();
+                recordHttp = new RecordHttp(state.nodeIp);
+                return recordHttp.send(tx);
+            }),
+            mergeMap((response) => response)
+        ),
+)
+
+const watchAll = interval(1000).pipe(
+    map((_) => {
+        console.log("Waiting...")
+        return watchRecordState
     }),
-    map((tx) => {
-        const state = binding.loadState();
-        recordHttp = new RecordHttp(state.nodeIp);
-        return recordHttp.send(tx);
-    }),
-    mergeMap((response) => response)
-);
+    mergeAll()
+)
 
-const watchRecordState = interval(1000).pipe(
-    mergeMap(() => stateListener.listen(1000)),
-    mergeMap((state) => {
-        storedState = state;
-        return recordListener.listen(1000);
-    }),
-);
+commandHttp = new CommandHttp(binding.loadState(), binding)
 
-// const watchCommand = handler.stateListener(2000)
-//     .pipe(
-//         map((state) => {
-//             commandHttp = new CommandHttp(storedState.nodeIp, ownerAccount, binding)
-//             console.log(storedState.nodeIp);
-//             ownerAccount = PublicAccount.createFromPublicKey(storedState.ownerPublicKey, NetworkType.TEST_NET);
-//             console.log("Command state fetched");
-//             return state;
-//         }),
-//         mergeMap(() => commandHttp.watch()),
-//         map((command) => {
-//             console.log("Command listening");
-//             if (command != undefined) {
-//                 binding.processCommand(command);
-//                 return "Command Processed: " + JSON.stringify(command);
-//             }
-//             return "Bad Command: " + JSON.stringify(command);
-//         })
-//     );
+commandHttp.watch().subscribe((c) => {
+    console.log('Command listener opened')
+    if (c) {
+        binding.processCommand(c)
+    }
+}, (e) => console.log(e))
 
-
-watchRecordState.subscribe((record) => {
-    console.log(record);
-});
-
-const ob = interval(1000).pipe(
-    mergeMap((_) => { 
-        console.log("something")
-        return recordListener.listen(0)
-    })
-);
-
-// ob.subscribe((rec) => { 
-//     console.log(rec)
-// })
-
-// watchRecord.subscribe((response) => {
-//     console.log(response);
-// });
-
-// watchCommand.subscribe((response) => {
-//     console.log(response);
-// });
+watchAll.subscribe((c) => console.log(c))
