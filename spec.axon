@@ -1,5 +1,5 @@
 INIT: 
-        The init of Axon deals with the intial start of the device.  
+        The init of Axon deals with the initial start of the device.  
         Once the device is started, it must undergo through several checks:
         * Check if Axon's assigned ID exists.  
         * Check if Axon's assigned ID has data associated with it (with the given node).
@@ -24,18 +24,18 @@ OWNERSHIP:
             These values are added to represent the level of ownership on-chain.  An example of a complete owner would be:
             OWNERSHIP_LEVEL=600
 
-            This inidcates that they can read, write, and also have root level of the device. 
+            This indicates that they can read, write, and also have root level of the device. 
             Root level allows the owner to update and change core Axon settings.
 
 
             Ownership Status represents the status of the owner.  
-            The first claiment of Axon will be labled as CLAIMANT=0.
+            The first claimant of Axon will be labeled as CLAIMANT=0.
             Other owners are assigned by CLAIMANT=0, and can the labels CLAIMANT=1, 2, etc.
 
-            Ownership is recored On-chain as metadata associated with Axon's Identity.  
+            Ownership is recorded On-chain as metadata associated with Axon's Identity.  
             The first owner of a device is signified as such.  There can only be ONE owner that has this label.
             Axon knows to check if it has an owner or not, and goes through the correct process each time
-            to ensure if it has assigned or not.
+            to ensure if it has been assigned or not.
 
 COMMANDS:
         Commands deal with INCOMING data.  Devices REACT on commands.  Devices can also send COMMANDS.
@@ -71,5 +71,3 @@ RECORDS:
                 SEND_RECORD:
                     PARAMS: recording_address
                     DESC: Send a record.
-                
-                
